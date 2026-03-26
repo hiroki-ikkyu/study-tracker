@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Study Tracker">
+<meta name="theme-color" content="#f5f5f7">
+<link rel="manifest" href="manifest.json">
+<title>Study Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--text2:#6e6e73;--text3:#aeaeb2;
+--border:#e5e5ea;--accent:#1d1d1f;--green:#34c759;--orange:#ff9500;
+--red:#ff3b30;--blue:#007aff;--purple:#af52de;
+--safe-top:env(safe-area-inset-top,0px);
+--safe-bottom:env(safe-area-inset-bottom,0px);
+--tab-height:64px;
+--tab-total:calc(var(--tab-height) + var(--safe-bottom) + 16px)
+}
+html,body{height:100%;overflow:hidden;touch-action:manipulation}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;background:var(--bg);color:var(--text)}
+button{font-family:inherit;cursor:pointer}
+button:active{transform:scale(0.97)}
+input,textarea,select{font-family:inherit;font-size:16px}
+.app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;position:relative}
+
+/* Page scroll area — enough bottom padding so content clears the raised tab bar */
+.page{
+flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+padding:16px 16px 0;
+padding-top:calc(16px + var(--safe-top));
+padding-bottom:calc(var(--tab-total) + 20px);
+}
+.page::-webkit-scrollbar{width:0;display:none}
+
+.header-sub{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px}
+.header-title{font-size:22px;font-weight:700;color:var(--text);margin-top:2px}
+.card{background:var(--card);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.02);padding:16px;margin-bottom:12px}
+.card-compact{padding:14px 16px}
+.label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.seg-row{display:flex;background:var(--bg);border-radius:14px;padding:3px}
+.seg-btn{flex:1;padding:10px 4px;border-radius:11px;font-size:11px;font-weight:600;text-align:center;border:none;background:transparent;color:var(--text2);transition:all 0.2s}
+.seg-btn.on{background:var(--accent);color:#fff}
+.badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+.prog-bar{height:6px;background:var(--border);border-radius:3px}
+.prog-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+.input-field{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:16px;border:none;outline:none;width:100%;color:var(--text)}
+textarea.input-field{resize:vertical;min-height:60px;line-height:1.5}
+.btn-primary{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:15px;font-weight:600;width:100%}
+.btn-secondary{background:var(--bg);color:var(--text);border:none;border-radius:12px;padding:14px 24px;font-size:15px;font-weight:600;width:100%}
+
+/* ============ TAB BAR — raised for iPhone ============ */
+.tab-bar{
+position:fixed;bottom:0;left:0;right:0;
+background:rgba(255,255,255,0.95);
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+border-top:0.5px solid var(--border);
+display:flex;align-items:stretch;
+/* Key: generous padding-bottom to push tabs ABOVE the iPhone home indicator area */
+padding:10px 8px;
+padding-bottom:calc(16px + var(--safe-bottom));
+z-index:100;max-width:480px;margin:0 auto;
+gap:4px;
+}
+.tab-item{
+flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+border:none;background:transparent;padding:6px 0;color:var(--text3);
+border-radius:12px;transition:background 0.15s;
+min-height:48px;
+}
+.tab-item:active{background:rgba(0,0,0,0.04)}
+.tab-item.active{color:var(--accent)}
+.tab-item svg{display:block;margin:0 auto 2px}
+.tab-label{font-size:10px;font-weight:600;line-height:1}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:flex-end;justify-content:center;z-index:200}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:480px;padding-bottom:calc(24px + var(--safe-bottom))}
+.session-item{display:flex;align-items:center;gap:10px;padding:10px 0}
+.session-item+.session-item{border-top:0.5px solid var(--border)}
+.color-dot{width:3px;height:24px;border-radius:2px;flex-shrink:0}
+.stat-box{flex:1;background:var(--bg);border-radius:12px;padding:12px;text-align:center}
+.stat-num{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat-label{font-size:11px;font-weight:600;color:var(--text2)}
+.countdown-card{flex:1;background:var(--bg);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px solid transparent}
+
+/* ============ DRAG AND DROP ============ */
+.chapter-row{
+display:flex;align-items:center;gap:10px;padding:10px 16px;
+border-top:0.5px solid var(--border);cursor:pointer;
+transition:background 0.15s,transform 0.15s,box-shadow 0.15s;
+user-select:none;-webkit-user-select:none;
+position:relative;
+}
+.chapter-row:active{background:rgba(0,0,0,0.02)}
+.chapter-row.dragging{
+background:var(--card);
+box-shadow:0 8px 32px rgba(0,0,0,0.15);
+border-radius:12px;
+z-index:50;
+transform:scale(1.02);
+opacity:0.95;
+}
+.chapter-row.drag-over-top{border-top:2px solid var(--blue) !important}
+.chapter-row.drag-over-bottom{border-bottom:2px solid var(--blue) !important}
+.drag-handle{
+width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+flex-shrink:0;color:var(--text3);touch-action:none;
+}
+.check-circle{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn 0.3s ease}
+
+/* Larger tap targets for mobile */
+@media(max-width:480px){
+.seg-btn{padding:12px 4px;font-size:12px}
+.session-item{padding:12px 0}
+.chapter-row{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+// ============================================================
+// Study Tracker v2 — iPhone Optimized + Drag & Drop + GitHub Pages
+// ============================================================
+const STORAGE_KEY='study-tracker-data';
+const SUBJECTS_DEFAULT=[
+{id:'boki2',name:'簿記2級',color:'#1d1d1f',examDate:'',sections:[{id:'boki2-s1',name:'商業簿記',chapters:[]},{id:'boki2-s2',name:'工業簿記',chapters:[]}]},
+{id:'far',name:'FAR',color:'#007aff',examDate:'',sections:[{id:'far-s1',name:'FAR 1-3（財務会計前半）',chapters:[]},{id:'far-s2',name:'FAR 4&5（財務会計後半）',chapters:[]}]},
+{id:'aud',name:'AUD',color:'#ff9500',examDate:'',sections:[{id:'aud-s1',name:'AUD（監査及び証明業務）',chapters:[]}]},
+{id:'reg',name:'REG',color:'#ff3b30',examDate:'',sections:[{id:'reg-s1',name:'REG1（ビジネス法）',chapters:[]},{id:'reg-s2',name:'REG2（税法）',chapters:[]}]},
+{id:'bar',name:'BAR',color:'#af52de',examDate:'',sections:[{id:'bar-s1',name:'BAR（ビジネス分析及び報告）',chapters:[]}]}
+];
+const STATUS_OPTIONS=['未着手','学習中','1周完了','2周完了','3周完了'];
+const STATUS_COLORS={'未着手':'#e5e5ea','学習中':'#007aff','1周完了':'#ff9500','2周完了':'#34c759','3周完了':'#34c759'};
+const DAY_NAMES=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+let state={
+tab:'timer',subjects:JSON.parse(JSON.stringify(SUBJECTS_DEFAULT)),sessions:[],reviews:[],
+timerSubject:'boki2',timerRunning:false,timerSeconds:0,timerStartTime:null,timerInterval:null,
+manualH:1,manualM:0,manualNote:'',logDate:todayStr(),reviewMode:'weekly',
+reviewWell:'',reviewImprove:'',reviewNext:'',
+selectedSubject:null,selectedChapter:null,showAddChapter:null,newChapterName:'',
+showExamDate:null,examDateInput:''
+};
+
+// Drag state
+let dragState={active:false,subId:null,secId:null,chId:null,startY:0,timer:null,el:null,placeholder:null,items:[]};
+
+function todayStr(){return new Date().toISOString().split('T')[0]}
+function daysUntil(d){if(!d)return null;const t=new Date(d+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);return Math.ceil((t-n)/864e5)}
+function fmtDate(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+function fmtLongDate(d){return new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}
+function fmtFullDate(){return new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}
+function fmtTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
+function fmtHM(m){const h=Math.floor(m/60),min=m%60;if(h===0)return`${min}m`;if(min===0)return`${h}h`;return`${h}h ${min}m`}
+function getWeekDates(d){const dt=new Date(d+'T00:00:00');const day=dt.getDay();const diff=dt.getDate()-day+(day===0?-6:1);const mon=new Date(dt);mon.setDate(diff);const arr=[];for(let i=0;i<7;i++){const dd=new Date(mon);dd.setDate(mon.getDate()+i);arr.push(dd)}return arr}
+function getSub(id){return state.subjects.find(s=>s.id===id)}
+function getDateSessions(d){return state.sessions.filter(s=>s.date===d)}
+function getWeekSessions(d){const w=getWeekDates(d);const s=w[0].toISOString().split('T')[0],e=w[6].toISOString().split('T')[0];return state.sessions.filter(ss=>ss.date>=s&&ss.date<=e)}
+function heatColor(m){if(m===0)return'#f0f0f2';if(m<60)return'#d4edda';if(m<120)return'#a8d5a2';if(m<180)return'#6ec067';return'#34c759'}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+function loadState(){try{const r=localStorage.getItem(STORAGE_KEY);if(r){const d=JSON.parse(r);if(d.subjects)state.subjects=d.subjects;if(d.sessions)state.sessions=d.sessions;if(d.reviews)state.reviews=d.reviews}}catch(e){}}
+function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({subjects:state.subjects,sessions:state.sessions,reviews:state.reviews}))}catch(e){}}
+
+function startTimer(){state.timerRunning=true;state.timerStartTime=new Date();state.timerInterval=setInterval(()=>{state.timerSeconds++;const el=document.getElementById('timer-display');if(el)el.textContent=fmtTime(state.timerSeconds)},1000);render()}
+function pauseTimer(){state.timerRunning=false;clearInterval(state.timerInterval);render()}
+function stopTimer(){clearInterval(state.timerInterval);if(state.timerSeconds>=60){const mins=Math.round(state.timerSeconds/60);state.sessions.push({id:Date.now().toString(),subjectId:state.timerSubject,date:todayStr(),minutes:mins,startTime:state.timerStartTime?state.timerStartTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}):'',note:'',type:'stopwatch'});saveState()}state.timerRunning=false;state.timerSeconds=0;state.timerStartTime=null;render()}
+
+function addManualSession(){const total=state.manualH*60+state.manualM;if(total<=0)return;state.sessions.push({id:Date.now().toString(),subjectId:state.timerSubject,date:todayStr(),minutes:total,startTime:'',note:state.manualNote,type:'manual'});state.manualNote='';saveState();render()}
+function deleteSession(id){state.sessions=state.sessions.filter(s=>s.id!==id);saveState();render()}
+
+function findChapter(subId,secId,chId){const sub=getSub(subId);if(!sub)return null;for(const sec of sub.sections){if(sec.id===secId){const ch=sec.chapters.find(c=>c.id===chId);if(ch)return ch}}return null}
+function addChapter(subId,secId){if(!state.newChapterName.trim())return;state.subjects.forEach(sub=>{if(sub.id===subId)sub.sections.forEach(sec=>{if(sec.id===secId)sec.chapters.push({id:'ch-'+Date.now(),name:state.newChapterName.trim(),status:'未着手',mcScores:[],tbsScores:[],notes:''})})});state.newChapterName='';state.showAddChapter=null;saveState();render()}
+function updateChapter(subId,secId,chId,updates){state.subjects.forEach(sub=>{if(sub.id===subId)sub.sections.forEach(sec=>{if(sec.id===secId)sec.chapters=sec.chapters.map(ch=>ch.id===chId?{...ch,...updates}:ch)})});saveState();if(state.selectedChapter&&state.selectedChapter.chapter.id===chId){state.selectedChapter.chapter={...state.selectedChapter.chapter,...updates}}render()}
+function deleteChapter(subId,secId,chId){state.subjects.forEach(sub=>{if(sub.id===subId)sub.sections.forEach(sec=>{if(sec.id===secId)sec.chapters=sec.chapters.filter(ch=>ch.id!==chId)})});state.selectedChapter=null;saveState();render()}
+function setExamDate(subId,date){state.subjects=state.subjects.map(s=>s.id===subId?{...s,examDate:date}:s);state.showExamDate=null;saveState();render()}
+
+function saveReview(){const w=document.getElementById('review-well'),im=document.getElementById('review-improve'),nx=document.getElementById('review-next');state.reviewWell=w?w.value:'';state.reviewImprove=im?im.value:'';state.reviewNext=nx?nx.value:'';if(!state.reviewWell.trim()&&!state.reviewImprove.trim()&&!state.reviewNext.trim())return;const wd=getWeekDates(todayStr());state.reviews.push({id:Date.now().toString(),weekStart:wd[0].toISOString().split('T')[0],date:todayStr(),type:state.reviewMode,well:state.reviewWell,improve:state.reviewImprove,next:state.reviewNext,totalMinutes:getWeekSessions(todayStr()).reduce((a,s)=>a+s.minutes,0)});state.reviewWell='';state.reviewImprove='';state.reviewNext='';saveState();render()}
+
+function addScore(subId,secId,chId,type){const label=type==='mc'?'MC':'TBS';const score=prompt(label+'正答率を入力 (例: 75)');if(score===null||isNaN(Number(score)))return;const ch=findChapter(subId,secId,chId);if(!ch)return;const key=type==='mc'?'mcScores':'tbsScores';const newScores=[...ch[key],{round:ch[key].length+1,score:Number(score)}];updateChapter(subId,secId,chId,{[key]:newScores})}
+
+function getStreak(){let streak=0;const d=new Date();d.setHours(0,0,0,0);while(true){const ds=d.toISOString().split('T')[0];const has=state.sessions.some(s=>s.date===ds);if(!has&&ds!==todayStr())break;if(has)streak++;d.setDate(d.getDate()-1);if(streak>365)break}return streak}
+function getSubjectProgress(sub){const all=sub.sections.flatMap(s=>s.chapters);if(!all.length)return 0;return Math.round(all.filter(c=>c.status==='3周完了').length/all.length*100)}
+function getSubjectChapterCount(sub){return sub.sections.reduce((a,s)=>a+s.chapters.length,0)}
+function getSubjectCompletedCount(sub){return sub.sections.flatMap(s=>s.chapters).filter(c=>c.status==='3周完了').length}
+
+function switchTab(t){state.tab=t;state.selectedSubject=null;state.selectedChapter=null;render()}
+
+// ============================================================
+// DRAG AND DROP (Touch-based for mobile)
+// ============================================================
+function initDrag(subId,secId,chId,el,e){
+const touch=e.touches?e.touches[0]:e;
+dragState.timer=setTimeout(()=>{
+dragState.active=true;
+dragState.subId=subId;
+dragState.secId=secId;
+dragState.chId=chId;
+dragState.startY=touch.clientY;
+dragState.el=el;
+el.classList.add('dragging');
+// Vibrate if available
+if(navigator.vibrate)navigator.vibrate(30);
+// Prevent scrolling
+document.body.style.overflow='hidden';
+},400);
+}
+
+function moveDrag(e){
+if(!dragState.active)return;
+e.preventDefault();
+const touch=e.touches?e.touches[0]:e;
+const rows=document.querySelectorAll(`.chapter-row[data-sec="${dragState.secId}"]`);
+rows.forEach(r=>{
+r.classList.remove('drag-over-top','drag-over-bottom');
+if(r.dataset.chid===dragState.chId)return;
+const rect=r.getBoundingClientRect();
+const midY=rect.top+rect.height/2;
+if(touch.clientY>=rect.top&&touch.clientY<=rect.bottom){
+if(touch.clientY<midY)r.classList.add('drag-over-top');
+else r.classList.add('drag-over-bottom');
+}
+});
+}
+
+function endDrag(e){
+clearTimeout(dragState.timer);
+if(!dragState.active){dragState={active:false};return}
+document.body.style.overflow='';
+const touch=e.changedTouches?e.changedTouches[0]:e;
+// Find drop target
+const rows=document.querySelectorAll(`.chapter-row[data-sec="${dragState.secId}"]`);
+let targetChId=null,insertBefore=true;
+rows.forEach(r=>{
+if(r.classList.contains('drag-over-top')){targetChId=r.dataset.chid;insertBefore=true}
+if(r.classList.contains('drag-over-bottom')){targetChId=r.dataset.chid;insertBefore=false}
+r.classList.remove('drag-over-top','drag-over-bottom');
+});
+if(dragState.el)dragState.el.classList.remove('dragging');
+
+if(targetChId&&targetChId!==dragState.chId){
+// Reorder chapters
+state.subjects.forEach(sub=>{
+if(sub.id===dragState.subId){
+sub.sections.forEach(sec=>{
+if(sec.id===dragState.secId){
+const chapters=[...sec.chapters];
+const fromIdx=chapters.findIndex(c=>c.id===dragState.chId);
+const item=chapters.splice(fromIdx,1)[0];
+let toIdx=chapters.findIndex(c=>c.id===targetChId);
+if(!insertBefore)toIdx++;
+chapters.splice(toIdx,0,item);
+sec.chapters=chapters;
+}
+});
+}
+});
+saveState();
+render();
+}
+dragState={active:false};
+}
+
+function cancelDrag(){
+clearTimeout(dragState.timer);
+if(dragState.el)dragState.el.classList.remove('dragging');
+document.body.style.overflow='';
+document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(r=>r.classList.remove('drag-over-top','drag-over-bottom'));
+dragState={active:false};
+}
+
+// ============================================================
+// RENDER FUNCTIONS
+// ============================================================
+function render(){
+const app=document.getElementById('app');
+app.innerHTML='<div class="page fade-in" id="page">'+renderTab()+'</div>'+renderTabBar()+(state.showExamDate?renderExamModal():'');
+bindEvents();
+}
+
+function renderTab(){
+switch(state.tab){
+case'timer':return renderTimer();
+case'log':return renderLog();
+case'review':return renderReview();
+case'plan':return renderPlan();
+case'subjects':return renderSubjects();
+case'stats':return renderStats();
+}return'';
+}
+
+// ===== TIMER =====
+function renderTimer(){
+const todaySess=getDateSessions(todayStr());
+const todayTotal=todaySess.reduce((a,s)=>a+s.minutes,0);
+let h=`<div style="margin-bottom:16px"><div class="header-sub">${fmtFullDate()}</div><div class="header-title">Timer</div></div>`;
+
+// Countdown
+h+=`<div class="card"><div class="label">Upcoming exams</div><div style="display:flex;gap:8px">`;
+state.subjects.slice(0,3).forEach(sub=>{
+const days=daysUntil(sub.examDate);
+h+=`<div class="countdown-card" style="${days!==null&&days<=90?'border-color:'+sub.color:''}" onclick="state.showExamDate='${sub.id}';state.examDateInput='${sub.examDate||''}';render()">
+<div style="font-size:28px;font-weight:700;color:${days!==null?sub.color:'var(--text3)'};font-variant-numeric:tabular-nums">${days!==null?days:'—'}</div>
+<div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.3px">${days!==null?'days left':'not set'}</div>
+<div style="width:24px;height:2px;background:${days!==null?sub.color:'var(--border)'};border-radius:1px;margin:6px auto"></div>
+<div style="font-size:12px;font-weight:700">${sub.name}</div>
+<div style="font-size:10px;color:var(--text2)">${sub.examDate?fmtDate(sub.examDate):'Tap to set'}</div></div>`;
+});
+h+=`</div></div>`;
+
+// Subject selector
+h+=`<div class="card"><div class="label">Select subject</div><div class="seg-row" style="gap:2px">`;
+state.subjects.forEach(sub=>{
+h+=`<button class="seg-btn${state.timerSubject===sub.id?' on':''}" onclick="state.timerSubject='${sub.id}';render()">${sub.name}</button>`;
+});
+h+=`</div></div>`;
+
+// Stopwatch
+const subName=getSub(state.timerSubject)?.name||'';
+h+=`<div class="card" style="text-align:center;padding:32px 16px">
+<div class="label">Stopwatch</div>
+<div id="timer-display" style="font-size:52px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-1px">${fmtTime(state.timerSeconds)}</div>
+<div style="font-size:13px;color:var(--text2);margin-top:6px">${subName}</div>
+<div style="display:flex;gap:16px;justify-content:center;margin-top:24px">`;
+if(!state.timerRunning&&state.timerSeconds===0){
+h+=`<button onclick="startTimer()" style="width:64px;height:64px;border-radius:50%;background:var(--green);border:none;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21"/></svg></button>`;
+}
+if(state.timerRunning){
+h+=`<button onclick="pauseTimer()" style="width:64px;height:64px;border-radius:50%;background:var(--orange);border:none;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></button>`;
+}
+if(!state.timerRunning&&state.timerSeconds>0){
+h+=`<button onclick="startTimer()" style="width:64px;height:64px;border-radius:50%;background:var(--green);border:none;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21"/></svg></button>`;
+}
+if(state.timerSeconds>0){
+h+=`<button onclick="stopTimer()" style="width:64px;height:64px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></button>`;
+}
+h+=`</div></div>`;
+
+// Manual input
+h+=`<div class="card"><div class="label">Or add manually</div>
+<div style="display:flex;gap:8px;align-items:center">
+<div style="display:flex;gap:4px;flex:1">
+<select class="input-field" style="flex:1;cursor:pointer" onchange="state.manualH=Number(this.value)">`;
+for(let i=0;i<=12;i++)h+=`<option value="${i}"${state.manualH===i?' selected':''}>${i}h</option>`;
+h+=`</select><select class="input-field" style="flex:1;cursor:pointer" onchange="state.manualM=Number(this.value)">`;
+[0,5,10,15,20,25,30,35,40,45,50,55].forEach(m=>{h+=`<option value="${m}"${state.manualM===m?' selected':''}>${m}m</option>`});
+h+=`</select></div>
+<button onclick="addManualSession()" style="width:48px;height:48px;border-radius:12px;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+</div>
+<input type="text" class="input-field" style="margin-top:8px" placeholder="Topic / note (optional)" id="manual-note" value="${escHtml(state.manualNote)}" oninput="state.manualNote=this.value">
+</div>`;
+
+// Today's sessions
+h+=`<div class="card"><div class="label">Today's sessions</div>`;
+if(!todaySess.length)h+=`<div style="font-size:14px;color:var(--text3);text-align:center;padding:20px">No sessions yet today</div>`;
+todaySess.forEach((sess,i)=>{
+const sub=getSub(sess.subjectId);
+h+=`<div class="session-item"><div class="color-dot" style="background:${sub?.color||'var(--accent)'}"></div>
+<div style="flex:1;min-width:0"><div style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(sess.note||sub?.name||'')}</div><div style="font-size:12px;color:var(--text2)">${sub?.name||''}${sess.startTime?' · '+sess.startTime:''}</div></div>
+<div style="font-size:13px;font-weight:600;color:var(--text2);flex-shrink:0">${fmtHM(sess.minutes)}</div>
+<button onclick="deleteSession('${sess.id}')" style="background:none;border:none;padding:8px;flex-shrink:0;margin:-4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`;
+});
+if(todaySess.length){h+=`<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)"><span style="font-size:13px;font-weight:600;color:var(--text2)">Total today</span><span style="font-size:15px;font-weight:700">${fmtHM(todayTotal)}</span></div>`}
+h+=`</div>`;
+return h;
+}
+
+// ===== LOG =====
+function renderLog(){
+const weekDates=getWeekDates(state.logDate);
+const dateSess=getDateSessions(state.logDate);
+const dateTotal=dateSess.reduce((a,s)=>a+s.minutes,0);
+const weekTotal=getWeekSessions(state.logDate).reduce((a,s)=>a+s.minutes,0);
+const bySub={};dateSess.forEach(s=>{bySub[s.subjectId]=(bySub[s.subjectId]||0)+s.minutes});
+
+let h=`<div style="margin-bottom:16px"><div class="header-sub">This week</div><div class="header-title">Log</div></div>`;
+h+=`<div class="card" style="padding:12px 8px;display:flex;gap:4px">`;
+weekDates.forEach((d,i)=>{
+const ds=d.toISOString().split('T')[0];const sel=ds===state.logDate;
+const dayMins=getDateSessions(ds).reduce((a,s)=>a+s.minutes,0);
+h+=`<div onclick="state.logDate='${ds}';render()" style="flex:1;text-align:center;border-radius:12px;padding:10px 2px;cursor:pointer;${sel?'background:var(--accent);box-shadow:0 2px 12px rgba(0,0,0,0.15)':''}transition:all 0.2s">
+<div style="font-size:10px;font-weight:600;color:${sel?'rgba(255,255,255,0.6)':'var(--text3)'}">${DAY_NAMES[i]}</div>
+<div style="font-size:17px;font-weight:700;color:${sel?'#fff':'var(--text)'};margin:4px 0">${d.getDate()}</div>
+<div style="width:5px;height:5px;border-radius:50%;background:${dayMins>0?'var(--green)':'var(--border)'};margin:0 auto"></div></div>`;
+});
+h+=`</div>`;
+h+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px"><div style="font-size:15px;font-weight:700">${fmtLongDate(state.logDate)}</div><div style="font-size:14px;font-weight:700">${fmtHM(dateTotal)}</div></div>`;
+if(dateTotal>0){
+h+=`<div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:10px;gap:2px">`;
+Object.entries(bySub).forEach(([id,mins])=>{h+=`<div style="flex:${mins};background:${getSub(id)?.color||'var(--accent)'};border-radius:3px"></div>`});
+h+=`</div><div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">`;
+Object.entries(bySub).forEach(([id,mins])=>{const sub=getSub(id);h+=`<div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:2px;background:${sub?.color}"></div><span style="font-size:11px;font-weight:600;color:var(--text2)">${sub?.name} ${fmtHM(mins)}</span></div>`});
+h+=`</div>`;
+}
+if(!dateSess.length)h+=`<div style="font-size:14px;color:var(--text3);text-align:center;padding:20px">No sessions</div>`;
+dateSess.forEach(sess=>{
+const sub=getSub(sess.subjectId);
+h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:0.5px solid var(--border)">
+${sess.startTime?`<span style="font-size:12px;font-weight:700;width:40px;flex-shrink:0">${sess.startTime}</span>`:''}
+<div class="color-dot" style="background:${sub?.color||'var(--accent)'}"></div>
+<div style="flex:1"><div style="font-size:14px">${escHtml(sess.note||sub?.name||'')}</div><div style="font-size:11px;color:var(--text2)">${sub?.name||''}</div></div>
+<span style="font-size:12px;font-weight:600;color:var(--text2)">${fmtHM(sess.minutes)}</span></div>`;
+});
+h+=`</div>`;
+const weekPct=Math.min(100,Math.round(weekTotal/60/15*100));
+const weekColor=weekTotal/60>=15?'var(--green)':weekTotal/60>=10?'var(--orange)':'var(--text)';
+h+=`<div class="card"><div class="label">Weekly summary</div><div style="display:flex;justify-content:space-between;margin-bottom:12px">
+<div style="text-align:center"><div class="stat-num">${(weekTotal/60).toFixed(1)}</div><div class="stat-label">hours</div></div>
+<div style="text-align:center"><div class="stat-num">15</div><div class="stat-label">target</div></div>
+<div style="text-align:center"><div class="stat-num" style="color:${weekColor}">${weekPct}%</div><div class="stat-label">achieved</div></div>
+</div><div class="prog-bar"><div class="prog-fill" style="width:${weekPct}%;background:var(--accent)"></div></div></div>`;
+return h;
+}
+
+// ===== REVIEW =====
+function renderReview(){
+const w=getWeekDates(todayStr());const weekStart=w[0].toISOString().split('T')[0],weekEnd=w[6].toISOString().split('T')[0];
+const weekSess=getWeekSessions(todayStr());const weekTotal=weekSess.reduce((a,s)=>a+s.minutes,0);
+const bySub={};weekSess.forEach(s=>{bySub[s.subjectId]=(bySub[s.subjectId]||0)+s.minutes});
+const daysStudied=new Set(weekSess.map(s=>s.date)).size;const avgDay=daysStudied>0?Math.round(weekTotal/daysStudied):0;
+let h=`<div style="margin-bottom:16px"><div class="header-sub">Phase 1</div><div class="header-title">Review</div></div>`;
+h+=`<div class="card" style="padding:3px"><div class="seg-row"><button class="seg-btn${state.reviewMode==='weekly'?' on':''}" onclick="state.reviewMode='weekly';render()">Weekly</button><button class="seg-btn${state.reviewMode==='monthly'?' on':''}" onclick="state.reviewMode='monthly';render()">Monthly</button></div></div>`;
+h+=`<div class="card"><div class="label">${fmtDate(weekStart)} — ${fmtDate(weekEnd)}</div><div style="display:flex;gap:8px;margin-bottom:14px">
+<div class="stat-box"><div class="stat-num">${(weekTotal/60).toFixed(1)}h</div><div class="stat-label">studied</div></div>
+<div class="stat-box"><div class="stat-num">${weekSess.length}</div><div class="stat-label">sessions</div></div>
+<div class="stat-box"><div class="stat-num">${fmtHM(avgDay)}</div><div class="stat-label">avg/day</div></div></div>`;
+h+=`<div class="label">By subject</div>`;
+Object.entries(bySub).forEach(([id,mins])=>{const sub=getSub(id);const pct=weekTotal>0?Math.round(mins/weekTotal*100):0;
+h+=`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:600">${sub?.name||''}</span><span style="font-size:13px;font-weight:700">${fmtHM(mins)}</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${sub?.color||'var(--accent)'}"></div></div></div>`});
+if(!Object.keys(bySub).length)h+=`<div style="font-size:13px;color:var(--text3);text-align:center;padding:8px">No data this week</div>`;
+h+=`</div>`;
+h+=`<div class="card"><div class="label">Weekly reflection</div>
+<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;margin-bottom:6px">What went well?</div><textarea class="input-field" placeholder="良かったこと..." id="review-well">${escHtml(state.reviewWell)}</textarea></div>
+<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;margin-bottom:6px">What needs improvement?</div><textarea class="input-field" placeholder="改善点..." id="review-improve">${escHtml(state.reviewImprove)}</textarea></div>
+<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:600;margin-bottom:6px">Next week's focus</div><textarea class="input-field" placeholder="来週の目標..." id="review-next">${escHtml(state.reviewNext)}</textarea></div>
+<button class="btn-primary" onclick="saveReview()">Save reflection</button></div>`;
+if(state.reviews.length){h+=`<div class="card"><div class="label">Past reviews</div>`;state.reviews.slice().reverse().slice(0,5).forEach(rev=>{h+=`<div style="padding:10px 0;border-bottom:0.5px solid var(--border)"><div style="display:flex;justify-content:space-between"><span style="font-size:14px">${fmtDate(rev.weekStart)}</span><span style="font-size:12px;font-weight:600;color:var(--text2)">${fmtHM(rev.totalMinutes)}</span></div>${rev.well?`<div style="font-size:12px;color:var(--text2);margin-top:4px">${escHtml(rev.well.slice(0,60))}...</div>`:''}</div>`});h+=`</div>`}
+return h;
+}
+
+// ===== PLAN =====
+function renderPlan(){
+const phases=[{num:1,name:'簿記2級 + FAR開始',period:'Mar — Jun 2026',active:true},{num:2,name:'FAR集中',period:'Jun — Sep 2026',active:false},{num:3,name:'AUD → REG → BAR',period:'Sep — Dec 2026',active:false}];
+let h=`<div style="margin-bottom:16px"><div class="header-sub">Target: Dec 2026</div><div class="header-title">Plan</div></div>`;
+h+=`<div class="card"><div class="label">Phase timeline</div><div style="position:relative;padding-left:20px"><div style="position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:var(--border)"></div>`;
+phases.forEach((p,i)=>{h+=`<div style="position:relative;${i<2?'margin-bottom:16px':''}"><div style="position:absolute;left:-17px;top:4px;width:12px;height:12px;border-radius:50%;background:${p.active?'var(--green)':'var(--border)'};border:2px solid #fff"></div><div style="display:flex;justify-content:space-between;align-items:baseline"><div><div style="font-size:14px;font-weight:700">Phase ${p.num}</div><div style="font-size:12px;color:var(--text2)">${p.name}</div></div>${p.active?'<span class="badge" style="color:var(--green);background:rgba(52,199,89,0.1)">Active</span>':''}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${p.period}</div></div>`});
+h+=`</div></div>`;
+h+=`<div class="card"><div class="label">Weekly target allocation</div><div style="display:flex;gap:8px">`;
+state.subjects.slice(0,3).forEach(sub=>{const wm=getWeekSessions(todayStr()).filter(s=>s.subjectId===sub.id).reduce((a,s)=>a+s.minutes,0);const pct=Math.min(100,Math.round(wm/60/5*100));
+h+=`<div class="stat-box"><div style="font-size:22px;font-weight:700">${(wm/60).toFixed(1)}h</div><div class="stat-label">${sub.name}</div><div class="prog-bar" style="margin-top:6px;height:4px"><div class="prog-fill" style="width:${pct}%;background:${sub.color}"></div></div></div>`});
+h+=`</div></div>`;
+h+=`<div class="card"><div class="label">Exam dates</div>`;
+state.subjects.forEach(sub=>{const days=daysUntil(sub.examDate);
+h+=`<div onclick="state.showExamDate='${sub.id}';state.examDateInput='${sub.examDate||''}';render()" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border);cursor:pointer">
+<div style="width:10px;height:10px;border-radius:3px;background:${sub.color};flex-shrink:0"></div><span style="font-size:14px;font-weight:600;flex:1">${sub.name}</span>`;
+if(sub.examDate){const bc=days<=90?'var(--orange)':'var(--green)';const bg=days<=90?'rgba(255,149,0,0.1)':'rgba(52,199,89,0.1)';h+=`<span style="font-size:12px;color:var(--text2)">${fmtDate(sub.examDate)}</span><span class="badge" style="color:${bc};background:${bg}">${days}日</span>`}
+else h+=`<span style="font-size:12px;color:var(--text3)">Tap to set</span>`;
+h+=`</div>`});
+h+=`</div>`;return h;
+}
+
+// ===== SUBJECTS =====
+function renderSubjects(){
+if(state.selectedChapter){
+const{subjectId,sectionId,chapter}=state.selectedChapter;
+const sub=getSub(subjectId);const ch=findChapter(subjectId,sectionId,chapter.id)||chapter;
+let h=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+<button onclick="state.selectedChapter=null;render()" style="background:none;border:none;padding:8px 4px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+<div style="font-size:18px;font-weight:700;flex:1">${escHtml(ch.name)}</div>
+<span class="badge" style="color:${STATUS_COLORS[ch.status]};background:${STATUS_COLORS[ch.status]}20">${ch.status}</span></div>`;
+h+=`<div class="card"><div class="label">Status</div><div style="display:flex;gap:4px">`;
+STATUS_OPTIONS.forEach(st=>{h+=`<button onclick="updateChapter('${subjectId}','${sectionId}','${ch.id}',{status:'${st}'})" style="flex:1;padding:10px 2px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;border:none;color:${ch.status===st?'#fff':'var(--text3)'};background:${ch.status===st?STATUS_COLORS[st]:'var(--bg)'}">${st}</button>`});
+h+=`</div></div>`;
+// MC
+h+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="margin-bottom:0">MC score</div><button onclick="addScore('${subjectId}','${sectionId}','${ch.id}','mc')" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--blue);padding:8px">+ Add</button></div><div style="display:flex;gap:8px;flex-wrap:wrap">`;
+[1,2,3].forEach(r=>{const e=ch.mcScores.find(x=>x.round===r);const c=e?(e.score>=80?'var(--green)':e.score>=60?'var(--blue)':'var(--orange)'):'var(--text3)';h+=`<div style="flex:1;min-width:80px;background:var(--bg);border-radius:10px;padding:12px;display:flex;justify-content:space-between"><span style="font-size:13px;color:${e?'var(--text2)':'var(--text3)'}">${r}周目</span><span style="font-size:13px;font-weight:700;color:${c}">${e?e.score+'%':'—'}</span></div>`});
+h+=`</div></div>`;
+// TBS
+h+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="label" style="margin-bottom:0">TBS score</div><button onclick="addScore('${subjectId}','${sectionId}','${ch.id}','tbs')" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--blue);padding:8px">+ Add</button></div><div style="display:flex;gap:8px;flex-wrap:wrap">`;
+[1,2,3].forEach(r=>{const e=ch.tbsScores.find(x=>x.round===r);const c=e?(e.score>=80?'var(--green)':e.score>=60?'var(--blue)':'var(--orange)'):'var(--text3)';h+=`<div style="flex:1;min-width:80px;background:var(--bg);border-radius:10px;padding:12px;display:flex;justify-content:space-between"><span style="font-size:13px;color:${e?'var(--text2)':'var(--text3)'}">${r}周目</span><span style="font-size:13px;font-weight:700;color:${c}">${e?e.score+'%':'—'}</span></div>`});
+h+=`</div></div>`;
+h+=`<div class="card"><div class="label">Notes</div><textarea class="input-field" style="min-height:80px" placeholder="メモ..." id="chapter-notes" oninput="updateChapter('${subjectId}','${sectionId}','${ch.id}',{notes:this.value})">${escHtml(ch.notes)}</textarea></div>`;
+h+=`<button class="btn-secondary" style="color:var(--red);margin-bottom:16px" onclick="if(confirm('この章を削除しますか？'))deleteChapter('${subjectId}','${sectionId}','${ch.id}')">Delete chapter</button>`;
+return h;
+}
+
+if(state.selectedSubject){
+const sub=getSub(state.selectedSubject);if(!sub){state.selectedSubject=null;return renderSubjects()}
+const totalCh=getSubjectChapterCount(sub),completedCh=getSubjectCompletedCount(sub),progress=getSubjectProgress(sub);
+const allMc=sub.sections.flatMap(sec=>sec.chapters.flatMap(ch=>ch.mcScores));const avgMc=allMc.length?Math.round(allMc.reduce((a,e)=>a+e.score,0)/allMc.length):null;
+const allTbs=sub.sections.flatMap(sec=>sec.chapters.flatMap(ch=>ch.tbsScores));const avgTbs=allTbs.length?Math.round(allTbs.reduce((a,e)=>a+e.score,0)/allTbs.length):null;
+let h=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+<button onclick="state.selectedSubject=null;render()" style="background:none;border:none;padding:8px 4px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+<div style="display:flex;align-items:center;gap:8px;flex:1"><div style="width:12px;height:12px;border-radius:3px;background:${sub.color}"></div><div style="font-size:20px;font-weight:700">${sub.name}</div></div></div>`;
+h+=`<div class="card"><div style="display:flex;gap:8px;margin-bottom:12px">
+<div class="stat-box"><div style="font-size:24px;font-weight:700">${completedCh}/${totalCh}</div><div class="stat-label">chapters</div></div>
+<div class="stat-box"><div style="font-size:24px;font-weight:700;color:${avgMc!==null?(avgMc>=80?'var(--green)':'var(--blue)'):'var(--text3)'}">${avgMc!==null?avgMc+'%':'—'}</div><div class="stat-label">MC avg</div></div>
+<div class="stat-box"><div style="font-size:24px;font-weight:700;color:${avgTbs!==null?(avgTbs>=80?'var(--green)':'var(--blue)'):'var(--text3)'}">${avgTbs!==null?avgTbs+'%':'—'}</div><div class="stat-label">TBS avg</div></div>
+</div><div class="prog-bar"><div class="prog-fill" style="width:${progress}%;background:${sub.color}"></div></div></div>`;
+
+sub.sections.forEach(sec=>{
+h+=`<div class="card" style="padding:0"><div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+<div style="font-size:14px;font-weight:700">${escHtml(sec.name)}</div>
+<button onclick="state.showAddChapter='${sec.id}';state.newChapterName='';render()" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--blue);padding:8px">+ Add</button></div>`;
+if(!sec.chapters.length)h+=`<div style="padding:8px 16px 16px;font-size:14px;color:var(--text3)">No chapters yet</div>`;
+sec.chapters.forEach(ch=>{
+const latestMc=ch.mcScores.length?ch.mcScores[ch.mcScores.length-1]:null;
+const latestTbs=ch.tbsScores.length?ch.tbsScores[ch.tbsScores.length-1]:null;
+const isComplete=ch.status==='3周完了',isStudying=ch.status==='学習中';
+h+=`<div class="chapter-row" data-subid="${sub.id}" data-sec="${sec.id}" data-chid="${ch.id}">
+<div class="drag-handle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/></svg></div>
+<div class="check-circle" style="border:${isComplete?'none':`2px solid ${STATUS_COLORS[ch.status]}`};background:${isComplete?'var(--green)':isStudying?'rgba(0,122,255,0.08)':'transparent'}">
+${isComplete?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+${isStudying?'<div style="width:6px;height:6px;border-radius:50%;background:var(--blue)"></div>':''}
+</div>
+<div style="flex:1;min-width:0" onclick="state.selectedChapter={subjectId:'${sub.id}',sectionId:'${sec.id}',chapter:JSON.parse(JSON.stringify(findChapter('${sub.id}','${sec.id}','${ch.id}')))};render()">
+<div style="font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(ch.name)}</div>
+<div style="font-size:11px;color:${isStudying?'var(--blue)':'var(--text2)'}">${ch.status}</div></div>
+<div style="text-align:right;flex-shrink:0" onclick="state.selectedChapter={subjectId:'${sub.id}',sectionId:'${sec.id}',chapter:JSON.parse(JSON.stringify(findChapter('${sub.id}','${sec.id}','${ch.id}')))};render()">
+<div style="font-size:12px;font-weight:600;color:${latestMc?'var(--text)':'var(--text3)'}">MC ${latestMc?latestMc.score+'%':'—'}</div>
+<div style="font-size:11px;color:${latestTbs?'var(--text2)':'var(--text3)'}">TBS ${latestTbs?latestTbs.score+'%':'—'}</div></div>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" onclick="state.selectedChapter={subjectId:'${sub.id}',sectionId:'${sec.id}',chapter:JSON.parse(JSON.stringify(findChapter('${sub.id}','${sec.id}','${ch.id}')))};render()"><polyline points="9 18 15 12 9 6"/></svg></div>`;
+});
+if(state.showAddChapter===sec.id){
+h+=`<div style="padding:10px 16px 14px;border-top:0.5px solid var(--border)"><div style="display:flex;gap:8px">
+<input type="text" class="input-field" style="flex:1" placeholder="Chapter name" id="new-chapter-name" value="${escHtml(state.newChapterName)}">
+<button class="btn-primary" style="width:auto;padding:12px 20px" onclick="state.newChapterName=document.getElementById('new-chapter-name').value;addChapter('${sub.id}','${sec.id}')">Add</button>
+<button onclick="state.showAddChapter=null;render()" style="background:none;border:none;color:var(--text2);font-size:14px;padding:8px">Cancel</button></div></div>`}
+h+=`</div>`;
+});
+return h;
+}
+
+// Subject list
+let h=`<div style="margin-bottom:16px"><div class="header-sub">${state.subjects.length} subjects</div><div class="header-title">Subjects</div></div>`;
+state.subjects.forEach(sub=>{
+const totalCh=getSubjectChapterCount(sub),completedCh=getSubjectCompletedCount(sub),progress=getSubjectProgress(sub);
+const days=daysUntil(sub.examDate);const allMc=sub.sections.flatMap(sec=>sec.chapters.flatMap(ch=>ch.mcScores));
+const avgMc=allMc.length?Math.round(allMc.reduce((a,e)=>a+e.score,0)/allMc.length):null;
+h+=`<div class="card card-compact" style="cursor:pointer" onclick="state.selectedSubject='${sub.id}';render()">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:10px"><div style="width:10px;height:10px;border-radius:3px;background:${sub.color}"></div><div>
+<div style="font-size:16px;font-weight:700">${sub.name}</div>
+<div style="font-size:12px;color:var(--text2);margin-top:2px">${totalCh} chapters${sub.examDate?' · 試験日 '+fmtDate(sub.examDate):''}</div></div></div>
+<div style="display:flex;align-items:center;gap:8px">`;
+if(days!==null){const bc=days<=90?'var(--orange)':'var(--green)';const bg=days<=90?'rgba(255,149,0,0.1)':'rgba(52,199,89,0.1)';h+=`<span class="badge" style="color:${bc};background:${bg}">${days}日</span>`}
+else if(totalCh===0)h+=`<span class="badge" style="color:#fff;background:#d1d1d6">未開始</span>`;
+h+=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>`;
+if(totalCh>0){h+=`<div class="prog-bar" style="margin-top:10px;height:4px"><div class="prog-fill" style="width:${progress}%;background:${sub.color}"></div></div><div style="font-size:11px;color:var(--text2);margin-top:4px">${completedCh}/${totalCh} completed${avgMc!==null?' · MC avg '+avgMc+'%':''}</div>`}
+h+=`</div>`;
+});
+return h;
+}
+
+// ===== STATS =====
+function renderStats(){
+const totalMins=state.sessions.reduce((a,s)=>a+s.minutes,0);const streak=getStreak();
+const daysStudied=new Set(state.sessions.map(s=>s.date)).size;const avgDay=daysStudied>0?Math.round(totalMins/daysStudied):0;
+let h=`<div style="margin-bottom:16px"><div class="header-sub">All time</div><div class="header-title">Stats</div></div>`;
+h+=`<div class="card"><div style="display:flex;gap:8px">
+<div style="flex:1;text-align:center"><div class="stat-num">${(totalMins/60).toFixed(1)}</div><div class="stat-label">total hours</div></div>
+<div style="width:0.5px;background:var(--border)"></div>
+<div style="flex:1;text-align:center"><div class="stat-num" style="color:var(--orange)">${streak}</div><div class="stat-label">day streak</div></div>
+<div style="width:0.5px;background:var(--border)"></div>
+<div style="flex:1;text-align:center"><div class="stat-num">${(avgDay/60).toFixed(1)}</div><div class="stat-label">avg hrs/day</div></div></div></div>`;
+// Heatmap
+const now=new Date(),yr=now.getFullYear(),mo=now.getMonth();const firstDay=new Date(yr,mo,1),lastDay=new Date(yr,mo+1,0);const startDow=(firstDay.getDay()+6)%7;
+h+=`<div class="card"><div class="label">Study heatmap — ${now.toLocaleDateString('en-US',{month:'long'})}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">`;
+DAY_NAMES.forEach(d=>h+=`<div style="font-size:9px;font-weight:600;color:var(--text3);text-align:center;padding:2px">${d.charAt(0)}</div>`);
+for(let i=0;i<startDow;i++)h+=`<div style="aspect-ratio:1"></div>`;
+for(let d=1;d<=lastDay.getDate();d++){const ds=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const dm=state.sessions.filter(s=>s.date===ds).reduce((a,s)=>a+s.minutes,0);
+h+=`<div style="aspect-ratio:1;border-radius:4px;background:${heatColor(dm)};${ds===todayStr()?'box-shadow:inset 0 0 0 2px var(--accent)':''}"></div>`}
+h+=`</div><div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-top:8px"><span style="font-size:9px;font-weight:600;color:var(--text3)">Less</span>`;
+['#f0f0f2','#d4edda','#a8d5a2','#6ec067','#34c759'].forEach(c=>h+=`<div style="width:10px;height:10px;border-radius:2px;background:${c}"></div>`);
+h+=`<span style="font-size:9px;font-weight:600;color:var(--text3)">More</span></div></div>`;
+// Subject breakdown
+h+=`<div class="card"><div class="label">Subject breakdown</div>`;
+state.subjects.forEach(sub=>{const sm=state.sessions.filter(s=>s.subjectId===sub.id).reduce((a,s)=>a+s.minutes,0);const pct=totalMins>0?Math.round(sm/totalMins*100):0;
+h+=`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:14px;font-weight:700;color:${sm>0?'var(--text)':'var(--text3)'}">${sub.name}</span><span style="font-size:12px;font-weight:600;color:${sm>0?'var(--text2)':'var(--text3)'}">${sm>0?fmtHM(sm):'—'}</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${sub.color}"></div></div></div>`});
+h+=`</div>`;
+// Weekly trend
+const weeks=[];const nd=new Date();for(let i=6;i>=0;i--){const dd=new Date(nd);dd.setDate(dd.getDate()-i*7);weeks.push({label:'W'+(7-i),minutes:getWeekSessions(dd.toISOString().split('T')[0]).reduce((a,s)=>a+s.minutes,0)})}
+const maxW=Math.max(...weeks.map(w=>w.minutes),1);
+h+=`<div class="card"><div class="label">Weekly trend</div><div style="display:flex;align-items:flex-end;gap:8px;height:100px">`;
+weeks.forEach(w=>h+=`<div style="flex:1;text-align:center"><div style="height:${Math.max(4,w.minutes/maxW*80)}px;background:var(--accent);border-radius:4px 4px 2px 2px;margin-bottom:4px"></div><div style="font-size:9px;color:var(--text3);font-weight:600">${w.label}</div></div>`);
+h+=`</div></div>`;return h;
+}
+
+// ===== TAB BAR =====
+function renderTabBar(){
+const tabs=[{id:'timer',label:'Timer',icon:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'},{id:'log',label:'Log',icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'},{id:'review',label:'Review',icon:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'},{id:'plan',label:'Plan',icon:'<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'},{id:'subjects',label:'Subjects',icon:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'},{id:'stats',label:'Stats',icon:'<path d="M18 20V10M12 20V4M6 20v-6"/>'}];
+let h=`<div class="tab-bar">`;
+tabs.forEach(t=>{const active=state.tab===t.id;h+=`<button class="tab-item${active?' active':''}" onclick="switchTab('${t.id}')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${active?'var(--accent)':'var(--text3)'}" stroke-width="2">${t.icon}</svg><div class="tab-label">${t.label}</div></button>`});
+return h+'</div>';
+}
+
+function renderExamModal(){
+const sub=getSub(state.showExamDate);if(!sub)return'';
+return`<div class="overlay" onclick="state.showExamDate=null;render()"><div class="modal" onclick="event.stopPropagation()">
+<div style="font-size:18px;font-weight:700;margin-bottom:16px">${sub.name} — Exam Date</div>
+<input type="date" class="input-field" style="margin-bottom:16px" id="exam-date-input" value="${state.examDateInput}">
+<div style="display:flex;gap:8px">
+<button class="btn-secondary" style="flex:1" onclick="state.showExamDate=null;render()">Cancel</button>
+<button class="btn-primary" style="flex:1" onclick="var v=document.getElementById('exam-date-input').value;setExamDate('${sub.id}',v)">Save</button></div>
+${sub.examDate?`<button class="btn-secondary" style="margin-top:8px;color:var(--red)" onclick="setExamDate('${sub.id}','')">Remove date</button>`:''}</div></div>`;
+}
+
+// ===== EVENT BINDING =====
+function bindEvents(){
+// Drag and drop for chapter rows
+document.querySelectorAll('.drag-handle').forEach(handle=>{
+const row=handle.closest('.chapter-row');
+if(!row)return;
+const subId=row.dataset.subid,secId=row.dataset.sec,chId=row.dataset.chid;
+handle.addEventListener('touchstart',e=>{e.stopPropagation();initDrag(subId,secId,chId,row,e)},{passive:true});
+handle.addEventListener('mousedown',e=>{e.stopPropagation();initDrag(subId,secId,chId,row,e)});
+});
+document.addEventListener('touchmove',moveDrag,{passive:false});
+document.addEventListener('touchend',endDrag);
+document.addEventListener('touchcancel',cancelDrag);
+document.addEventListener('mousemove',moveDrag);
+document.addEventListener('mouseup',endDrag);
+// Auto-focus new chapter input
+const ncn=document.getElementById('new-chapter-name');
+if(ncn){ncn.focus();ncn.addEventListener('input',()=>{state.newChapterName=ncn.value});
+ncn.addEventListener('keydown',e=>{if(e.key==='Enter'){state.newChapterName=ncn.value;const secId=state.showAddChapter;const subId=state.selectedSubject;if(subId&&secId)addChapter(subId,secId)}})}
+}
+
+// ===== INIT =====
+loadState();
+render();
+</script>
+</body>
+</html>
