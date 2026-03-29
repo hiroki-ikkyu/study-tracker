@@ -10,6 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <title>Study Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="https://hiroki-ikkyu.github.io/ceo-portal/shared-store.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -172,9 +173,9 @@ function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({subjec
 
 function startTimer(){state.timerRunning=true;state.timerStartTime=new Date();state.timerInterval=setInterval(()=>{state.timerSeconds++;const el=document.getElementById('timer-display');if(el)el.textContent=fmtTime(state.timerSeconds)},1000);render()}
 function pauseTimer(){state.timerRunning=false;clearInterval(state.timerInterval);render()}
-function stopTimer(){clearInterval(state.timerInterval);if(state.timerSeconds>=60){const mins=Math.round(state.timerSeconds/60);state.sessions.push({id:Date.now().toString(),subjectId:state.timerSubject,date:todayStr(),minutes:mins,startTime:state.timerStartTime?state.timerStartTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}):'',note:'',type:'stopwatch'});saveState()}state.timerRunning=false;state.timerSeconds=0;state.timerStartTime=null;render()}
+function stopTimer(){clearInterval(state.timerInterval);if(state.timerSeconds>=60){const mins=Math.round(state.timerSeconds/60);state.sessions.push({id:Date.now().toString(),subjectId:state.timerSubject,date:todayStr(),minutes:mins,startTime:state.timerStartTime?state.timerStartTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}):'',note:'',type:'stopwatch'});saveState();if(typeof SharedStore!=='undefined'){const sub=getSub(state.timerSubject);SharedStore.study.logSession({minutes:mins,subject:sub?sub.name:state.timerSubject});}}state.timerRunning=false;state.timerSeconds=0;state.timerStartTime=null;render()}
 
-function addManualSession(){const total=state.manualH*60+state.manualM;if(total<=0)return;state.sessions.push({id:Date.now().toString(),subjectId:state.timerSubject,date:todayStr(),minutes:total,startTime:'',note:state.manualNote,type:'manual'});state.manualNote='';saveState();render()}
+function addManualSession(){const total=state.manualH*60+state.manualM;if(total<=0)return;state.sessions.push({id:Date.now().toString(),subjectId:state.timerSubject,date:todayStr(),minutes:total,startTime:'',note:state.manualNote,type:'manual'});state.manualNote='';saveState();if(typeof SharedStore!=='undefined'){const sub=getSub(state.timerSubject);SharedStore.study.logSession({minutes:total,subject:sub?sub.name:state.timerSubject});}render()}
 function deleteSession(id){state.sessions=state.sessions.filter(s=>s.id!==id);saveState();render()}
 
 function findChapter(subId,secId,chId){const sub=getSub(subId);if(!sub)return null;for(const sec of sub.sections){if(sec.id===secId){const ch=sec.chapters.find(c=>c.id===chId);if(ch)return ch}}return null}
